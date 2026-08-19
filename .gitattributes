@@ -1,0 +1,5 @@
+# Ensure application source files are included in GitHub language statistics.
+*.py linguist-detectable
+*.js linguist-detectable
+*.css linguist-detectable
+*.html linguist-detectable
