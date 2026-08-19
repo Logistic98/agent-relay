@@ -1,0 +1,66 @@
+name: agent-relay
+
+services:
+  relay:
+    image: "agent-relay:${AGENT_RELAY_IMAGE_TAG:-local}"
+    build:
+      context: .
+      args:
+        PYTHON_VERSION: "${PYTHON_VERSION:-3.12.11}"
+        NODE_VERSION: "${NODE_VERSION:-22.16.0}"
+        UV_VERSION: "${UV_VERSION:-0.7.2}"
+        CODEX_CLI_VERSION: "${CODEX_CLI_VERSION:-0.148.0}"
+        CLAUDE_CODE_VERSION: "${CLAUDE_CODE_VERSION:-2.1.235}"
+        RELAY_UID: "${RELAY_UID:-10001}"
+        RELAY_GID: "${RELAY_GID:-10001}"
+    restart: unless-stopped
+    init: false
+    env_file:
+      - "${AGENT_RELAY_ENV_FILE:-.env}"
+    environment:
+      API_HOST: "0.0.0.0"
+      DATABASE_PATH: "/data/agent-relay.db"
+      GENERAL_WORKSPACE: "/data/general-workspace"
+      DEFAULT_WORKSPACE: "/workspace"
+      HOME: "/home/relay"
+      WORKSPACE_ROOTS: "/workspace"
+      CODEX_EXECUTABLE: "codex"
+      CLAUDE_EXECUTABLE: "claude"
+      XDG_CACHE_HOME: "/tmp/cache"
+    ports:
+      - "127.0.0.1:${API_PORT:-8787}:${API_PORT:-8787}"
+    volumes:
+      - type: bind
+        source: "${AGENT_RELAY_WORKSPACE:-.}"
+        target: /workspace
+      - type: bind
+        source: "${AGENT_RELAY_DATA_DIR:-./data}"
+        target: /data
+      - type: bind
+        source: "${CODEX_HOME_DIR:-${HOME}/.codex}"
+        target: /home/relay/.codex
+      - type: bind
+        source: "${CLAUDE_HOME_DIR:-${HOME}/.claude}"
+        target: /home/relay/.claude
+      - type: bind
+        source: "${CLAUDE_CONFIG_FILE:-${HOME}/.claude.json}"
+        target: /home/relay/.claude.json
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 512
+    stop_grace_period: 15s
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:${API_PORT:-8787}/health/ready', timeout=3)"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

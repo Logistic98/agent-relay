@@ -1,0 +1,62 @@
+[project]
+name = "agent-relay"
+version = "0.1.0"
+description = "Production-oriented Telegram and HTTP relay for local Codex and Claude Code agents."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.21.0,<1.0.0",
+    "fastapi>=0.116.0,<1.0.0",
+    "httpx>=0.28.1,<1.0.0",
+    "pydantic-settings>=2.10.0,<3.0.0",
+    "uvicorn[standard]>=0.35.0,<1.0.0",
+]
+
+[project.scripts]
+agent-relay = "cli:main"
+
+[dependency-groups]
+dev = [
+    "build>=1.3.0,<2.0.0",
+    "pytest>=8.4.0,<9.0.0",
+    "pytest-asyncio>=1.1.0,<2.0.0",
+    "ruff>=0.12.0,<1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/agents",
+    "src/api",
+    "src/core",
+    "src/domain",
+    "src/persistence",
+    "src/presentation",
+    "src/runtime",
+    "src/services",
+    "src/transports",
+    "src/webapp",
+]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/cli.py" = "cli.py"
+"src/main.py" = "main.py"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[tool.ruff.format]
+line-ending = "lf"
+quote-style = "double"

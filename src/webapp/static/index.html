@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Agent Relay</title>
+    <link rel="stylesheet" href="/app/assets/app.css?v=20260819-12" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="/app/assets/app.js?v=20260819-12" defer></script>
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <aside id="sidebar" class="sidebar" aria-label="任务列表">
+        <div class="brand-row">
+          <div class="brand-mark">AR</div>
+          <div>
+            <div class="brand-name">Agent Relay</div>
+            <div class="brand-subtitle">本地编程 Agent 工作台</div>
+          </div>
+          <button id="closeSidebar" class="icon-button mobile-only" aria-label="关闭任务列表">×</button>
+        </div>
+
+        <button id="newTaskButton" class="new-task-button" type="button">
+          <span class="new-task-icon">＋</span>
+          <span>新建任务</span>
+        </button>
+
+        <label class="search-box">
+          <span class="search-icon"></span>
+          <input id="taskSearch" type="search" placeholder="搜索任务" autocomplete="off" />
+        </label>
+
+        <div class="section-label">最近任务</div>
+        <nav id="conversationList" class="conversation-list" aria-live="polite">
+          <div class="sidebar-loading">正在加载任务…</div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="status-dot"></div>
+          <div class="sidebar-footer-copy">
+            <strong>本地 Relay</strong>
+            <span id="connectionLabel">正在连接</span>
+          </div>
+          <button id="refreshButton" class="icon-button" type="button" aria-label="刷新">↻</button>
+        </div>
+      </aside>
+
+      <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+
+      <main class="workspace">
+        <header class="topbar">
+          <button id="openSidebar" class="icon-button mobile-only" type="button" aria-label="打开任务列表">☰</button>
+          <button id="projectButton" class="context-button project-context" type="button">
+            <span class="context-kicker">项目</span>
+            <strong id="projectName">选择项目</strong>
+            <span class="chevron">⌄</span>
+          </button>
+          <div class="topbar-spacer"></div>
+          <div class="agent-switch" role="group" aria-label="选择 Agent">
+            <button class="agent-option is-active" data-agent="codex" type="button">Codex</button>
+            <button class="agent-option" data-agent="claude" type="button">Claude</button>
+          </div>
+        </header>
+
+        <section id="conversationView" class="conversation-view" aria-live="polite">
+          <div id="emptyState" class="empty-state">
+            <div class="empty-mark">AR</div>
+            <h1>想让 Agent 做什么？</h1>
+            <p>直接在下方开始通用对话，或者选择项目处理代码。通用对话保持只读。</p>
+            <button id="emptyProjectButton" class="primary-button" type="button">选择项目</button>
+          </div>
+          <div id="messageStream" class="message-stream hidden"></div>
+        </section>
+
+        <footer class="composer-area">
+          <form id="composerForm" class="composer">
+            <textarea
+              id="composerInput"
+              rows="1"
+              placeholder="描述任务，或询问有关代码的问题"
+              aria-label="任务内容"
+            ></textarea>
+            <div class="composer-toolbar">
+              <div class="composer-controls">
+                <div id="composerContext" class="composer-context">尚未选择项目</div>
+                <label class="run-setting">
+                  <span>模型</span>
+                  <select id="modelSelect" aria-label="选择模型"></select>
+                </label>
+                <label class="run-setting effort-setting">
+                  <span>推理</span>
+                  <select id="effortSelect" aria-label="选择推理强度"></select>
+                </label>
+                <button id="permissionButton" class="permission-trigger" type="button">
+                  <span class="permission-shield" aria-hidden="true"></span>
+                  <span id="permissionLabel">请求批准</span>
+                  <span class="chevron" aria-hidden="true">⌄</span>
+                </button>
+              </div>
+              <div class="composer-actions">
+                <span class="send-hint">Enter 发送</span>
+                <button id="sendButton" class="send-button" type="submit" aria-label="发送" disabled>
+                  <svg viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M10 15.5V4.5M5.5 9 10 4.5 14.5 9" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </form>
+          <div class="safety-note">Agent 可能会出错，请根据任务风险选择合适的操作权限。</div>
+        </footer>
+      </main>
+    </div>
+
+    <dialog id="projectDialog" class="modal">
+      <div class="modal-header">
+        <div>
+          <h2>选择工作范围</h2>
+          <p>可以不选择项目，直接开始只读的通用对话</p>
+        </div>
+        <button class="icon-button" data-close-dialog type="button" aria-label="关闭">×</button>
+      </div>
+      <label class="project-search">
+        <input id="projectSearch" type="search" placeholder="搜索项目名称或路径" autocomplete="off" />
+      </label>
+      <button id="generalConversationButton" class="general-option" type="button">
+        <span class="project-badge">—</span>
+        <span class="project-copy">
+          <strong>不选择项目</strong>
+          <span>通用对话，只读，不绑定项目目录</span>
+        </span>
+      </button>
+      <div id="projectList" class="project-list"></div>
+    </dialog>
+
+    <dialog id="permissionDialog" class="modal permission-modal">
+      <div class="modal-header">
+        <div>
+          <h2>Agent 操作权限</h2>
+          <p>设置下一条任务可以访问的范围。通用对话始终只读。</p>
+        </div>
+        <button class="icon-button" data-close-permission type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="permission-options" role="radiogroup" aria-label="Agent 操作权限">
+        <button class="permission-option is-active" data-permission="request_approval" type="button" role="radio">
+          <span class="permission-option-icon">1</span>
+          <span class="permission-option-copy">
+            <strong>请求批准</strong>
+            <span>先只读分析并展示计划，批准后才修改文件或执行命令</span>
+          </span>
+          <span class="permission-check">✓</span>
+        </button>
+        <button class="permission-option" data-permission="workspace_auto" type="button" role="radio">
+          <span class="permission-option-icon">2</span>
+          <span class="permission-option-copy">
+            <strong>工作区自动执行</strong>
+            <span>自动执行计划，Codex 限制在项目沙箱；Claude 使用已配置的工具白名单</span>
+          </span>
+          <span class="permission-check">✓</span>
+        </button>
+        <button class="permission-option danger" data-permission="full_access" type="button" role="radio">
+          <span class="permission-option-icon">3</span>
+          <span class="permission-option-copy">
+            <strong>完全访问</strong>
+            <span>可访问项目外文件和互联网，仅在你信任任务内容时使用</span>
+          </span>
+          <span class="permission-check">✓</span>
+        </button>
+      </div>
+      <div id="fullAccessConfirm" class="full-access-confirm hidden">
+        <strong>确认开启完全访问？</strong>
+        <p>Agent 将绕过 Codex/Claude 的沙箱和权限检查，可能读取或修改电脑上的其他文件并访问网络。</p>
+        <div class="confirm-actions">
+          <button id="cancelFullAccess" class="secondary-button" type="button">取消</button>
+          <button id="confirmFullAccess" class="danger-confirm-button" type="button">确认完全访问</button>
+        </div>
+      </div>
+    </dialog>
+
+    <div id="toastRegion" class="toast-region" aria-live="assertive"></div>
+  </body>
+</html>

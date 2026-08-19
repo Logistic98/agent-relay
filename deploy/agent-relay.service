@@ -1,0 +1,51 @@
+[Unit]
+Description=Agent Relay for local Codex and Claude Code CLIs
+Documentation=file:///opt/agent-relay/docs/部署指南.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agent-relay
+Group=agent-relay
+WorkingDirectory=/opt/agent-relay
+EnvironmentFile=/etc/agent-relay.env
+Environment=HOME=/var/lib/agent-relay/home
+Environment=PATH=/opt/agent-relay/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DATABASE_PATH=/var/lib/agent-relay/agent-relay.db
+ExecStart=/opt/agent-relay/.venv/bin/agent-relay serve
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=20s
+KillSignal=SIGINT
+KillMode=control-group
+UMask=0077
+
+StateDirectory=agent-relay
+StateDirectoryMode=0700
+LogsDirectory=agent-relay
+LogsDirectoryMode=0700
+ReadOnlyPaths=/opt/agent-relay
+ReadWritePaths=/var/lib/agent-relay /srv/agent-workspaces
+
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
